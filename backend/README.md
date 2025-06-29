@@ -541,3 +541,204 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NGY4YTFiM
 - The token is added to a blacklist to prevent reuse even if it hasn't expired
 - This endpoint is protected by the `authMiddleware.authUser` middleware
 - The logout process is secure and prevents token reuse attacks
+
+## Captain Registration Endpoint
+
+### POST `/captains/register`
+
+Registers a new captain (driver) in the system.
+
+#### Description
+This endpoint creates a new captain account with the provided information, including vehicle details. The password is automatically hashed before storing in the database. Upon successful registration, a JWT authentication token is generated and returned along with the captain data.
+
+#### Request Body
+
+The request body should be a JSON object with the following structure:
+
+```json
+{
+  "fullname": {
+    "firstname": "string",
+    "lastname": "string"
+  },
+  "email": "string",
+  "password": "string",
+  "vehicle": {
+    "color": "string",
+    "plate": "string",
+    "capacity": 1,
+    "vehicleType": "car" // or "motorcycle", "auto"
+  }
+}
+```
+
+#### Field Requirements
+
+| Field | Type | Required | Validation Rules |
+|-------|------|----------|------------------|
+| `fullname.firstname` | String | Yes | Minimum 3 characters |
+| `fullname.lastname` | String | Yes | Minimum 3 characters |
+| `email` | String | Yes | Valid email format, must be unique |
+| `password` | String | Yes | Minimum 6 characters |
+| `vehicle.color` | String | Yes | Minimum 3 characters |
+| `vehicle.plate` | String | Yes | Minimum 3 characters |
+| `vehicle.capacity` | Integer | Yes | Minimum 1 |
+| `vehicle.vehicleType` | String | Yes | Must be one of: car, motorcycle, auto |
+
+#### Example Request
+
+```json
+{
+  "fullname": {
+    "firstname": "Alice",
+    "lastname": "Smith"
+  },
+  "email": "alice.smith@example.com",
+  "password": "securepass123",
+  "vehicle": {
+    "color": "Red",
+    "plate": "XYZ1234",
+    "capacity": 4,
+    "vehicleType": "car"
+  }
+}
+```
+
+#### Response Examples
+
+##### Success Response (201 Created)
+
+```json
+{
+  "token": "<jwt_token>",
+  "captain": {
+    "_id": "65a1b2c3d4e5f6a7b8c9d0e1",
+    "fullname": {
+      "firstname": "Alice",
+      "lastname": "Smith"
+    },
+    "email": "alice.smith@example.com",
+    "vehicle": {
+      "color": "Red",
+      "plate": "XYZ1234",
+      "capacity": 4,
+      "vehicleType": "car"
+    }
+  }
+}
+```
+
+##### Error Response Examples
+
+###### 1. Validation Error - Short First Name (400 Bad Request)
+
+```json
+{
+  "errors": [
+    {
+      "type": "field",
+      "value": "Al",
+      "msg": "Firstname must be at least 3 characters long",
+      "path": "fullname.firstname",
+      "location": "body"
+    }
+  ]
+}
+```
+
+###### 2. Validation Error - Invalid Email (400 Bad Request)
+
+```json
+{
+  "errors": [
+    {
+      "type": "field",
+      "value": "invalid-email",
+      "msg": "Please enter a valid email",
+      "path": "email",
+      "location": "body"
+    }
+  ]
+}
+```
+
+###### 3. Validation Error - Short Password (400 Bad Request)
+
+```json
+{
+  "errors": [
+    {
+      "type": "field",
+      "value": "123",
+      "msg": "Password must be at least 6 characters long",
+      "path": "password",
+      "location": "body"
+    }
+  ]
+}
+```
+
+###### 4. Validation Error - Invalid Vehicle Type (400 Bad Request)
+
+```json
+{
+  "errors": [
+    {
+      "type": "field",
+      "value": "truck",
+      "msg": "Vehicle type must be car, motorcycle, or auto",
+      "path": "vehicle.vehicleType",
+      "location": "body"
+    }
+  ]
+}
+```
+
+###### 5. Multiple Validation Errors (400 Bad Request)
+
+```json
+{
+  "errors": [
+    {
+      "type": "field",
+      "value": "Al",
+      "msg": "Firstname must be at least 3 characters long",
+      "path": "fullname.firstname",
+      "location": "body"
+    },
+    {
+      "type": "field",
+      "value": "truck",
+      "msg": "Vehicle type must be car, motorcycle, or auto",
+      "path": "vehicle.vehicleType",
+      "location": "body"
+    }
+  ]
+}
+```
+
+#### Status Codes
+
+| Status Code | Description |
+|-------------|-------------|
+| 201 | Captain successfully created |
+| 400 | Validation error or missing required fields |
+| 500 | Internal server error |
+
+#### Validation Rules
+
+- **First Name**: Must be at least 3 characters long
+- **Last Name**: Must be at least 3 characters long
+- **Email**: Must be a valid email format and unique
+- **Password**: Must be at least 6 characters long
+- **Vehicle Color**: Must be at least 3 characters long
+- **Vehicle Plate**: Must be at least 3 characters long
+- **Vehicle Capacity**: Must be at least 1
+- **Vehicle Type**: Must be one of: car, motorcycle, auto
+
+#### Notes
+
+- The password is automatically hashed before storing in the database
+- A JWT token is generated using the captain's `_id` and `JWT_SECRET` environment variable
+- The password field is excluded from the response
+- The endpoint validates all required fields and vehicle details
